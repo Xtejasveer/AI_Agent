@@ -2,9 +2,11 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 import sys
-
+from functions.get_files_info import get_files_info
 
 def main():
+
+
     load_dotenv()
 
     client = OpenAI(
@@ -38,4 +40,6 @@ def main():
         print(f"User Prompt : {prompt}")
         print(f"Prompt Tokens : {response.usage.total_tokens}")
 
-main()
+print(get_files_info("calculator"))
+
+# main()

@@ -40,6 +40,4 @@ def main():
         print(f"User Prompt : {prompt}")
         print(f"Prompt Tokens : {response.usage.total_tokens}")
 
-print(get_files_info("calculator"))
-
-# main()
+main()

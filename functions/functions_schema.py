@@ -50,6 +50,9 @@ schema_run_python_file = {
                 "args": {
                     "type": "array",
                     "description": " An optional array of strings to be used as the CLI args for the python file",
+                    "items": {
+                        "type": "string"
+                    },
                 },
             },
         },

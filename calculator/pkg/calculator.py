@@ -1,5 +1,3 @@
-# calculator/pkg/calculator.py
-
 from collections.abc import Callable
 
 
@@ -22,10 +20,11 @@ class Calculator:
         if not expression or expression.isspace():
             return None
         tokens = expression.strip().split()
-        return self._evaluate_infix(tokens)
+        postfix = self._infix_to_postfix(tokens)
+        return self._evaluate_postfix(postfix)
 
-    def _evaluate_infix(self, tokens: list[str]) -> float:
-        values: list[float] = []
+    def _infix_to_postfix(self, tokens: list[str]) -> list[str]:
+        output: list[str] = []
         operators: list[str] = []
 
         for token in tokens:
@@ -35,30 +34,28 @@ class Calculator:
                     and operators[-1] in self.operators
                     and self.precedence[operators[-1]] >= self.precedence[token]
                 ):
-                    self._apply_operator(operators, values)
+                    output.append(operators.pop())
                 operators.append(token)
             else:
-                try:
-                    values.append(float(token))
-                except ValueError:
-                    raise ValueError(f"invalid token: {token}")
+                output.append(token)
 
         while operators:
-            self._apply_operator(operators, values)
+            output.append(operators.pop())
+
+        return output
+
+    def _evaluate_postfix(self, tokens: list[str]) -> float:
+        values: list[float] = []
+
+        for token in tokens:
+            if token in self.operators:
+                b = values.pop()
+                a = values.pop()
+                values.append(self.operators[token](a, b))
+            else:
+                values.append(float(token))
 
         if len(values) != 1:
             raise ValueError("invalid expression")
 
         return values[0]
-
-    def _apply_operator(self, operators: list[str], values: list[float]) -> None:
-        if not operators:
-            return
-
-        operator = operators.pop()
-        if len(values) < 2:
-            raise ValueError(f"not enough operands for operator {operator}")
-
-        b = values.pop()
-        a = values.pop()
-        values.append(self.operators[operator](a, b))

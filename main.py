@@ -16,15 +16,24 @@ def main():
     )
 
     system_prompt = (
-        """You are a helpful AI coding agent.
-        When a user asks a question or makes a request, amke afunction call plan. You can perform the following operations:
-        - List files adn directories
-        - Read file contents
-        - Execute Pyhton files with optional arguments
-        - Write or overwrite files
-         
-        All paths you provide should be relative to the working directory. You donot specify the wroking directory in your function calls as it is automatically injected for security reasons."""
-    )
+    """You are a helpful AI coding agent working in a specific codebase.
+
+    When a user reports a bug, asks a question about behavior, or asks for a fix,
+    you must investigate the actual code first using your available functions
+    before answering or proposing a fix. Do not rely on general knowledge alone —
+    always look at the relevant files, even if you think you already know the answer,
+    because the bug may be specific to this codebase's implementation.
+
+    You can perform the following operations:
+    - List files and directories
+    - Read file contents
+    - Execute Python files with optional arguments
+    - Write or overwrite files
+
+    All paths you provide should be relative to the working directory. You do not
+    specify the working directory in your function calls — it is automatically
+    injected for security reasons."""
+)
 
     if len(sys.argv) < 2 :
         print("I need a prompt")
@@ -43,30 +52,40 @@ def main():
         schema_write_file,
         schema_run_python_file
     ]
-    
-    print ("Args :", sys.argv)
-    response = client.chat.completions.create(
-        messages = messages,
-        model = "gpt-4o-mini",
-        temperature= 0,
-        tools = available_functions   
-    )
 
-    if response is None or response.usage is None:
-        print("response is malformed")
-        return 
 
-    if verbose_flag : 
-        print(f"User Prompt : {prompt}")
-        print(f"Prompt Tokens : {response.usage.total_tokens}")
+    max_iters = 20
 
-    message = response.choices[0].message
+    for i in range(0, max_iters):
+        
+        print ("Args :", sys.argv)
+        response = client.chat.completions.create(
+            messages = messages,
+            model = "gpt-4o-mini",
+            temperature= 0,
+            tools = available_functions   
+        )
 
-    if not message.tool_calls:
-        print(f"No tool calls made. The message content is : {message.content}")
+        if response is None or response.usage is None:
+            print("response is malformed")
+            return 
+
+        if verbose_flag : 
+            print(f"User Prompt : {prompt}")
+            print(f"Prompt Tokens : {response.usage.total_tokens}")
+
+        message = response.choices[0].message
+        messages.append(message)
+
+        if message.tool_calls:
+            for tool_call in message.tool_calls:
+                result = call_function(tool_call, verbose_flag)
+                messages.append(result)
+        else:
+            #final agent text message
+            print(message.content)
+            return 
     else :
-        for tool_call in message.tool_calls:
-            result = call_function(tool_call, verbose_flag)
-            print(result)
-
+        print(f"Error: Maximum iterations ({max_iters}) reached without a final response .")
+        sys.exit(1)
 main()

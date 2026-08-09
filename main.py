@@ -3,8 +3,8 @@ import json
 from dotenv import load_dotenv
 from openai import OpenAI
 import sys
-from functions.get_files_info import schema_get_files_info
-
+from functions.functions_schema import schema_run_python_file, schema_get_files_info, schema_get_file_content, schema_write_file
+from call_function import call_function
 def main():
 
 
@@ -19,6 +19,9 @@ def main():
         """You are a helpful AI coding agent.
         When a user asks a question or makes a request, amke afunction call plan. You can perform the following operations:
         - List files adn directories
+        - Read file contents
+        - Execute Pyhton files with optional arguments
+        - Write or overwrite files
          
         All paths you provide should be relative to the working directory. You donot specify the wroking directory in your function calls as it is automatically injected for security reasons."""
     )
@@ -36,12 +39,15 @@ def main():
 
     available_functions = [
         schema_get_files_info,
+        schema_get_file_content,
+        schema_write_file,
+        schema_run_python_file
     ]
     
     print ("Args :", sys.argv)
     response = client.chat.completions.create(
         messages = messages,
-        model = "google/gemma-4-26b-a4b-it:free",
+        model = "gpt-4o-mini",
         temperature= 0,
         tools = available_functions   
     )
@@ -60,7 +66,7 @@ def main():
         print(f"No tool calls made. The message content is : {message.content}")
     else :
         for tool_call in message.tool_calls:
-            function_args = json.loads(tool_call.function.arguments or "{}")
-            print(f"Calling Function: {tool_call.function.name}({function_args})")
+            result = call_function(tool_call, verbose_flag)
+            print(result)
 
 main()
